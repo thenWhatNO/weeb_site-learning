@@ -1,0 +1,31 @@
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Build C Project",
+            "command": "/usr/bin/gcc",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "-Wall",
+                "${workspaceFolder}/client.c",
+                "${workspaceFolder}/main.c",
+                "${workspaceFolder}/server.c",
+                "-o",
+                "${workspaceFolder}/myapp"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Build all C files into myapp"
+        }
+    ],
+    "version": "2.0.0"
+}
