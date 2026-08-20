@@ -159,12 +159,11 @@ int accept_server(  Server_socket *server_sock,
 
 int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before useg.
                     Server_socket *server_sock ,
-                    int *client_fd, 
-                    size_t client_len, 
+                    Client_socket *client_socket,  
                     size_t timeout)
     {
 
-    if (client_len <= 0){return 0;}
+    if (client_socket->size <= 0){return 0;}
     
     int i;
 
@@ -173,13 +172,13 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 
     FD_SET(server_sock->fd, &clients);
 
-    for (i = 0; i <= client_len; i++){
-        FD_SET(client_fd[i], &clients);
+    for (i = 0; i <= client_socket->size; i++){
+        FD_SET(client_socket->fds[i], &clients);
     }
 
     struct timeval tv = {timeout,0};
     
-    int res = select(client_fd[client_len-1]+1, &clients, NULL, NULL, &tv);
+    int res = select(client_socket->fds[client_socket->size-1]+1, &clients, NULL, NULL, &tv);
     if(res == 0){return 0;}
     else if(res == -1){
         perror("faild to select sesrver listion\n");
@@ -188,21 +187,24 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 
     char buff[1024];
 
-    for(i = 0; i <= client_len; i++){
-        int cor_client = client_fd[i];
+    for(i = 0; i <= client_socket->size; i++){
+        int cor_client = client_socket->fds[i];
         if(FD_ISSET(cor_client, &clients) == 0){
             continue;
         }
 
         int get = recv(cor_client, buff, sizeof(buff), 0);
-
+        
         if(get == -1) {continue;}
         else if (get == 0){
             FD_CLR(cor_client, &clients);
-            //todo : add the REMOVE CLIENT function hear!
-            // or update, depend how i ralize client support
+            
+            printf("client %d disconect\n", cor_client);
+            
+            remove_client(client_socket, cor_client, client_socket->size);
         }
-
+        
+        //printf("%s\n", buff);
         // todo: need to add a new function that well filter commands.
         //add_datagram(DTgrams, buff, cor_client);
         memset(buff, 0, sizeof(buff));
@@ -212,11 +214,10 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 
 int send_datagram(  Server_socket *server_sock,
                     HTML_datagram *html_data,
-                    int *client_fd, 
-                    size_t client_len,
+                    Client_socket *client_socket,
                     size_t dg_size)
     {
-    if (client_len <= 0){return 0;}
+    if (client_socket->size <= 0){return 0;}
 
     if (html_data->len >= 4096){
         perror("the msg size of bigger then 4096\n");
@@ -224,13 +225,12 @@ int send_datagram(  Server_socket *server_sock,
     }
 
     int get;
-    printf("%s", html_data->html_msg);
 
-    for (int i = 0; i < client_len; i++){
-        get = send(client_fd[i], html_data->html_msg, html_data->len, 0);
+    for (int i = 0; i < client_socket->size; i++){
+        get = send(client_socket->fds[i], html_data->html_msg, html_data->len, 0);
 
         if(get == -1){
-            perror("faild to send data to client\n");
+            printf("faild to send data to client %d\n", client_socket->fds[i]);
         }
     }
 
@@ -252,18 +252,24 @@ int generate_data(HTML_datagram *html_data, size_t data_len, Datagram_store *DTg
                               "\r\n"
                               "%s";
     
-    const char *html_tamply = "<!DOCTYPE html>\n"
-                              "<html>\n"
-                              "<head><title>My C Server</title></head>\n"
-                              "<body>\n"
-                              "<h1>Hello from C!</h1>\n"
-                              "<p>This page was served by a C HTTP server.</p>\n"
-                              "<pre>%s</pre>\n"
-                              "</body>\n"
-                              "</html>";
+    char *html_tamply;
+    size_t html_len;
+
+    FILE *ptr = fopen("html_files/main-page.html", "r");
+    if(ptr == NULL){return -1;}
+
+    fseek(ptr, 0, SEEK_END);
+    long full_len = ftell(ptr);
+    rewind(ptr);
+
+    html_tamply = malloc(sizeof(char) + full_len + 1);
+    html_len = fread(html_tamply, 1, full_len, ptr);
+    html_tamply[html_len] = '\0';
+    fclose(ptr);
+
+
     char *html = NULL;
     char *chat = NULL;
-    size_t html_len;
 
 
     if (DTgrams->size > 0){

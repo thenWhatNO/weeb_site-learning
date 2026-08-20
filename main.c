@@ -25,11 +25,16 @@ int main(){
     init_html_struct(&html_struct);
     while(1){
         accept_server(&my_server, &my_clients, 1);
-        listin_server(&my_datagrams, &my_server, my_clients.fds, my_clients.size, 1);
+
+        for(int i = 0; i < my_clients.size; i++){
+            printf("%d\n", my_clients.fds[i]);
+        }
+
+        listin_server(&my_datagrams, &my_server, &my_clients, 1);
         
         generate_data(&html_struct, 4096, &my_datagrams);
 
-        send_datagram(&my_server, &html_struct, my_clients.ides, my_clients.size, my_datagrams.size);
+        send_datagram(&my_server, &html_struct, &my_clients, my_datagrams.size);
     }
     free_html_stract(&html_struct);
 

@@ -59,16 +59,15 @@ int clear_server_data(Server_socket *Server_socket);
 int accept_server(Server_socket *server_fd, Client_socket *client_sock, size_t timeout);
 
 // return -1 if get en error, return 0 is ervything is fine
-int listin_server(Datagram_store *DTgrams, Server_socket *server_fd ,int *client_set ,size_t client_len , size_t timeout);
+int listin_server(Datagram_store *DTgrams, Server_socket *server_fd ,Client_socket *client_socket , size_t timeout);
 
 // send individualy for one client a datagram
-int send_datagram(Server_socket *server_fd, HTML_datagram *html_data ,int *client_set, size_t client_len, size_t dg_size);
+int send_datagram(Server_socket *server_fd, HTML_datagram *html_data ,Client_socket *client_socket, size_t dg_size);
 
 // up date client when reconnecting or diconnecting
 int update_clients(int *clients_set);
 
 // ---------------- html data struffs
-
 
 int init_html_struct(HTML_datagram *html_str);
 int write_msg_to_html(HTML_datagram *html_data, char *msg, size_t msg_len);

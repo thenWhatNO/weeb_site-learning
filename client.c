@@ -1,11 +1,12 @@
+#include <stdio.h>
 #include "client.h"
 
 
 int init_client_sock(Client_socket *client_sock){
     client_sock->cap = 10;
     client_sock->size = 0;
-    client_sock->fds = malloc(sizeof(int) * client_sock->cap);
-    client_sock->ides = malloc(sizeof(int) * client_sock->cap);
+    client_sock->fds = calloc(client_sock->cap, sizeof(int));
+    client_sock->ides = calloc(client_sock->cap, sizeof(int));
 
     return 0;
 }
@@ -26,8 +27,26 @@ int add_client(Client_socket *client_sock,int fd, int id){
 }
 
 int remove_client(Client_socket *client_sock, int fd, int id){
-    // not shure illl neeed to do that
-    /// seans im gonna clear the clients list evry time for new client connectiom
+    int cleard = 0;
+    for (int i = 0; i < client_sock->size; i++){
+        
+        if(client_sock->fds[i] == fd){
+            client_sock->fds[i] = 0;
+            cleard = 1;
+        }
+
+        if(cleard){
+            client_sock->fds[i] = client_sock->fds[i+1];
+            printf("%d < %d\n", client_sock->fds[i], client_sock->fds[i+1]);
+        }
+        
+    }
+
+    if(cleard){
+        client_sock->size--;
+        return 0;
+    }
+    else{return -1;}
 }
 
 int clear_client_socket(Client_socket *client_sock){
