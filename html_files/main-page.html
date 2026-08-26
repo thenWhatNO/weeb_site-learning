@@ -1,50 +1,50 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>My C Server</title>
-    </head>
+<head>
+    <title>POST to C Server</title>
+</head>
+<body>
+    <h1>Send Data to C Server</h1>
 
-    <body>
-        <h1>Hello from C!</h1>
+    %s
 
-        <p>This page was served by a C HTTP server.</p>
-        
-        <p id="response">%s</p>
+    <p id="response"></p>
 
-        <ul>
-            <li>
-                <input type="text" id="mesg" placeholder="Enter your name" value="Alice">
-            </li>
-            <li>
-                <button onclick="sundData()">
-                    <div class="fake-textbox">sund</div> 
-                </button>
-            </li>
-        </ul>
+    <input type="text" id="nameInput" placeholder="Enter your name" value="Alice">
+    <button onclick="sendData()">Send POST</button>
+    
+    <script>
+
+        const events = new EventSource('/api/stream');
+
+        events.onmessage = (e) => {
+            const div = document.getElementById('response');
+            div.innerText += e.data + '\n';
+        };
+
+        function sendData() {
+            const name = document.getElementById('nameInput').value;
             
+            const payload = {
+                name: name,
+                time: new Date().toISOString()
+            };
 
-        <script>
-            function sendData() {
-                const name = document.getElementById("mesg").value;
-
-                const playload = {
-                    name : name
-                }
-
-                fetch('http://192.168.0.114:8080/api/data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(playload)                                    
-                })
-                .then(response => response.text())
-                .then(data => {document.getElementById('response').innerText = 'Server says ' + data;})
-                .catch(error => {
-                    document.getElementById('response').innerText = 'error ' + error;
-                })
-            }
-        </script>
-
-    </body>
+            fetch('http://192.168.0.114:8080/api/data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('response').innerText = data;
+            })
+            .catch(error => {
+                document.getElementById('response').innerText = 'Error: ' + error;
+            });
+        }
+    </script>
+</body>
 </html>

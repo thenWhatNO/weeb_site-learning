@@ -2,6 +2,9 @@
 
 int main(){
 
+    Files_struct my_files;
+    open_files(&my_files);
+
     Server_socket my_server;
     if (initilize_server("192.168.0.114", "8080", &my_server) == -1){
         perror("coulend initialize server sockets\n");
@@ -23,23 +26,22 @@ int main(){
     
     HTML_datagram html_struct;
     init_html_struct(&html_struct);
+
     while(1){
         accept_server(&my_server, &my_clients, 1);
 
-        for(int i = 0; i < my_clients.size; i++){
-            printf("%d\n", my_clients.fds[i]);
-        }
-
         listin_server(&my_datagrams, &my_server, &my_clients, 1);
         
-        generate_data(&html_struct, 4096, &my_datagrams);
+        read_client_msg(&my_datagrams, &html_struct, &my_files);
 
         send_datagram(&my_server, &html_struct, &my_clients, my_datagrams.size);
+        clear_datagram(&my_datagrams);
     }
     free_html_stract(&html_struct);
 
     stop_server(&my_server);
 
+    close_files(&my_files);
     clear_client_socket(&my_clients);
     clear_datagram(&my_datagrams);
     close_server(&my_server);

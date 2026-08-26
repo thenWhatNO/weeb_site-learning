@@ -32,12 +32,13 @@ int remove_client(Client_socket *client_sock, int fd, int id){
         
         if(client_sock->fds[i] == fd){
             client_sock->fds[i] = 0;
+            client_sock->ides[i] = 0;
             cleard = 1;
         }
 
         if(cleard){
             client_sock->fds[i] = client_sock->fds[i+1];
-            printf("%d < %d\n", client_sock->fds[i], client_sock->fds[i+1]);
+            client_sock->ides[i] = client_sock->ides[i+1];
         }
         
     }

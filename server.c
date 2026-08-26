@@ -12,7 +12,7 @@ int init_datagramstore(Datagram_store *datagram){
     return 0;
 }
 
-int add_datagram(Datagram_store *datagram, char *data, int clientfd){
+int add_datagram(Datagram_store *datagram, char *data, int clientfd, int data_size){
 
     if (datagram->size >= datagram->cap){
         datagram->cap += 10;
@@ -20,19 +20,23 @@ int add_datagram(Datagram_store *datagram, char *data, int clientfd){
     }
 
     datagram->datagrams[datagram->size].client_id = clientfd;
-    datagram->datagrams[datagram->size].msg = malloc(strlen(data)+1);
+    datagram->datagrams[datagram->size].msg_size = data_size;
+    datagram->datagrams[datagram->size].msg = malloc(data_size+1);
     strcpy(datagram->datagrams[datagram->size].msg, data); 
+    datagram->datagrams[datagram->size].msg[data_size] = '\0';
 
     datagram->size++;
     return 0;
 }
 
-int clear_datagram(Datagram_store *datagram){
-    for (int i = 0; i < datagram->size; i++){
-        free(datagram->datagrams[i].msg);
+int clear_datagram(Datagram_store *Dgram){
+    for (int i = 0; i < Dgram->size; i++){
+        memset(Dgram->datagrams[i].msg, 0, Dgram->datagrams[i].msg_size);
+        Dgram->datagrams[i].msg_size = 0;
+        Dgram->datagrams[i].client_id = 0;
     }
 
-    free(datagram->datagrams);
+    Dgram->size = 0;
 
     return 0;
 }
@@ -170,8 +174,6 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
     fd_set clients;
     FD_ZERO(&clients);
 
-    FD_SET(server_sock->fd, &clients);
-
     for (i = 0; i <= client_socket->size; i++){
         FD_SET(client_socket->fds[i], &clients);
     }
@@ -186,6 +188,7 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
     }
 
     char buff[1024];
+    memset(buff, 0, 1024);
 
     for(i = 0; i <= client_socket->size; i++){
         int cor_client = client_socket->fds[i];
@@ -193,21 +196,18 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
             continue;
         }
 
-        int get = recv(cor_client, buff, sizeof(buff), 0);
+        int get = recv(cor_client, buff, 1024, 0);
         
         if(get == -1) {continue;}
         else if (get == 0){
-            FD_CLR(cor_client, &clients);
-            
-            printf("client %d disconect\n", cor_client);
-            
-            remove_client(client_socket, cor_client, client_socket->size);
+            // FD_CLR(cor_client, &clients);
+            // remove_client(client_socket, cor_client, client_socket->size);
+        }
+        else if (get > 0){
+            add_datagram(DTgrams, buff, cor_client, get);
         }
         
-        //printf("%s\n", buff);
-        // todo: need to add a new function that well filter commands.
-        //add_datagram(DTgrams, buff, cor_client);
-        memset(buff, 0, sizeof(buff));
+        memset(buff, 0, 1024);
     }
     return 0;
 }
@@ -215,22 +215,27 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 int send_datagram(  Server_socket *server_sock,
                     HTML_datagram *html_data,
                     Client_socket *client_socket,
-                    size_t dg_size)
+                    size_t dg_size
+                )
     {
     if (client_socket->size <= 0){return 0;}
 
-    if (html_data->len >= 4096){
-        perror("the msg size of bigger then 4096\n");
+    if (html_data->len >= 9999){
+        perror("the msg size of bigger then 9999\n");
         return -1;
     }
 
     int get;
 
     for (int i = 0; i < client_socket->size; i++){
-        get = send(client_socket->fds[i], html_data->html_msg, html_data->len, 0);
+        get = send(client_socket->fds[i], ": ping\n\n", 9, MSG_NOSIGNAL);
 
         if(get == -1){
+
+            remove_client(client_socket, client_socket->fds[i], client_socket->size);
+
             printf("faild to send data to client %d\n", client_socket->fds[i]);
+            return -1;
         }
     }
 
@@ -242,7 +247,87 @@ int close_server(Server_socket *server_sock){
     return 0;
 }
 
-int generate_data(HTML_datagram *html_data, size_t data_len, Datagram_store *DTgrams){
+int read_client_msg(Datagram_store *DTgrams, 
+                    HTML_datagram *html_data, 
+                    Files_struct *myfiles
+                )
+    {
+    if (DTgrams->size <= 0){return 0;}
+
+    for (int i = 0; i < DTgrams->size; i++){
+        if(strlen(DTgrams->datagrams[i].msg) <= 0){continue;} //chack that there IS a msg
+
+        char *HADER_C = strcasestr(DTgrams->datagrams[i].msg, "GET"); // check if its a GET
+        if(HADER_C != NULL){
+            generate_data(html_data, myfiles, DTgrams);
+
+            if (html_data->len >= 4096){
+                perror("the msg size of bigger then 4096\n");
+                return -1;
+            }
+
+            int get = send(DTgrams->datagrams[i].client_id, html_data->html_msg, html_data->len, 0);
+            if (get <= 0){
+                perror("faild to ansar to GET request in read function\n");
+            }
+
+            continue;
+        }
+        
+        HADER_C = strcasestr(DTgrams->datagrams[i].msg, "POST"); // check if it a POST, and do the rest
+        if(HADER_C == NULL){continue;}
+        else {
+            char *cl = strcasestr(DTgrams->datagrams[i].msg, "Content-Length:");
+
+            if(cl == NULL){
+                const char *resp = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
+                printf("sending error msg to client %d", DTgrams->datagrams[i].client_id);
+                send(DTgrams->datagrams[i].client_id, resp, strlen(resp), 0);
+                //remove_client()
+                return -1;
+            }
+
+            int content_Length = atoi(cl+15);
+
+            char *content = calloc(content_Length+1, sizeof(char));
+            if(content == NULL){return -1;}
+
+            int start = DTgrams->datagrams[i].msg_size - content_Length;
+            strcpy(content, DTgrams->datagrams[i].msg + start);
+            content[content_Length+1] = '\0';
+
+            char mesg[100];
+            char time[100];
+
+            sscanf(content, "{\"name\":\"%[^\"]\",\"time\":\"%10[^\"]\"}", mesg, time);
+
+            size_t client_data_len = strlen(mesg) + 14;
+            char *client_data = calloc(client_data_len, sizeof(char));
+            sprintf(client_data, "%s [%s]\n", mesg, time);
+
+            printf("%s\n", client_data);
+
+            int snd = send(DTgrams->datagrams[i].client_id, client_data, client_data_len, 0);
+            if (snd <= 0){
+                perror("faild to send client data\n");
+            }
+
+            size_t w_data_l = sizeof(char) * (strlen(mesg) + 21);
+            char *w_data = malloc(w_data_l);
+            sprintf(w_data, "<p>%s [%s]</p>\n", mesg, time);
+            
+            update_chat_file(myfiles, w_data, w_data_l);
+
+            free(w_data);
+            free(content);
+            free(client_data);
+
+        }
+
+    }
+}
+
+int generate_data(HTML_datagram *html_data, Files_struct *myfiles, Datagram_store *DTgrams){
     
     const char *html_haders = "HTTP/1.0 200 OK\r\n"
                               "Content-Type: text/html; charset=UTF-8\r\n"
@@ -252,52 +337,28 @@ int generate_data(HTML_datagram *html_data, size_t data_len, Datagram_store *DTg
                               "\r\n"
                               "%s";
     
-    char *html_tamply;
+    char *html_tamply = malloc(1);
+    char *chat_tamply = malloc(1);
     size_t html_len;
+    size_t chat_len;
 
-    FILE *ptr = fopen("html_files/main-page.html", "r");
-    if(ptr == NULL){return -1;}
-
-    fseek(ptr, 0, SEEK_END);
-    long full_len = ftell(ptr);
-    rewind(ptr);
-
-    html_tamply = malloc(sizeof(char) + full_len + 1);
-    html_len = fread(html_tamply, 1, full_len, ptr);
-    html_tamply[html_len] = '\0';
-    fclose(ptr);
-
+    html_len = read_file(myfiles, 'm', &html_tamply);
+    chat_len = read_file(myfiles, 'c', &chat_tamply);
 
     char *html = NULL;
     char *chat = NULL;
 
-
-    if (DTgrams->size > 0){
-        int i;
-        
-        size_t chat_len = 1;
-
-        for (i = 0; i < DTgrams->size; i++){
-            chat_len += strlen(DTgrams->datagrams[i].msg);
-            chat_len += 2;
-        }
-
-        chat = malloc(chat_len);
-        if (chat == NULL) return -1;
-        chat[0] = '\0';
-
-        for (i = 0; i < DTgrams->size; i++){
-            strcat(chat, DTgrams->datagrams[i].msg);
-            strcat(chat, "\n");
-        }
-        html_len = strlen(html_tamply) + strlen(chat) + 1;
+    if (chat_len > 0){
+        html_len = strlen(html_tamply) + strlen(chat_tamply) + 1;
         html = malloc(html_len);
         if (html == NULL) {
             free(chat);
             return -1;
         }
-        snprintf(html, html_len, html_tamply, chat);
-    } else {
+        snprintf(html, html_len, html_tamply, chat_tamply);
+    } 
+    else 
+    {
         char *non = "there nothing to show\n";
         html_len = strlen(html_tamply) + strlen(non);
         html = malloc(html_len);
@@ -315,6 +376,9 @@ int generate_data(HTML_datagram *html_data, size_t data_len, Datagram_store *DTg
 
     if(html != NULL){free(html);}
     if(chat != NULL){free(chat);}
+
+    free(html_tamply);
+    free(chat_tamply);
 
     return 1;
 }
@@ -349,4 +413,73 @@ int free_html_stract(HTML_datagram *html_data){
     html_data->html_msg = NULL;
 
     return 0;
+}
+
+int open_files(Files_struct *myfiles){
+    myfiles->chat_file = fopen("html_files/chat_block.html", "r+");
+    if (myfiles->chat_file == NULL){
+        perror("cant open chat file. maybe not exist\n");
+        return -1;
+    }
+
+    myfiles->html_file = fopen("html_files/main-page.html", "r+");
+    if (myfiles->html_file == NULL){
+        perror("cant open html page file. maybe not exist\n");
+        fclose(myfiles->chat_file);
+        return -1;
+    }
+
+    return 0;
+}
+
+int close_files(Files_struct *myfiles){
+    fclose(myfiles->chat_file);
+    fclose(myfiles->html_file);
+
+    return 0;
+}
+
+int update_chat_file(Files_struct *myfiles, char *data, size_t d_size){
+    if(d_size > 9999){
+        perror("data size too big to save in the file\n");
+        return -1;
+    }
+
+    fseek(myfiles->chat_file, 0, SEEK_END);
+    if(fwrite(data, 1, d_size, myfiles->chat_file) != d_size){
+        perror("could not write data into chat file\n");
+        return -1;
+    }
+    rewind(myfiles->chat_file);
+    return 0;
+}
+
+int read_file(Files_struct *myfiles, char file, char **buffer){
+    FILE *ptr = NULL;
+    if (file == 'm'){
+        ptr = myfiles->html_file;
+    }
+    if(file == 'c'){
+        ptr = myfiles->chat_file;
+    }
+    
+    if(ptr == NULL){
+        return -1;
+    }
+
+    fseek(ptr, 0, SEEK_END);
+    long file_size = ftell(ptr);
+    rewind(ptr);
+
+    if(*buffer == NULL){
+        *buffer = malloc((file_size+1) * sizeof(char));
+    }
+    if(strlen(*buffer) < file_size){
+        *buffer = realloc(*buffer, (file_size+1) * sizeof(char));
+    }
+
+    size_t full_l = fread(*buffer, 1, file_size, ptr);
+    (*buffer)[full_l] == '\0';
+
+    return full_l;
 }
