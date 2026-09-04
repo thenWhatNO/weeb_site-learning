@@ -43,6 +43,8 @@ int remove_client(Client_socket *client_sock, int fd, int id){
         
     }
 
+    printf("remove client : %d\n", fd);
+
     if(cleard){
         client_sock->size--;
         return 0;

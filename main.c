@@ -34,7 +34,7 @@ int main(){
         
         read_client_msg(&my_datagrams, &html_struct, &my_files);
 
-        send_datagram(&my_server, &html_struct, &my_clients, my_datagrams.size);
+        send_datagram(&my_server, &html_struct, &my_clients);
         clear_datagram(&my_datagrams);
     }
     free_html_stract(&html_struct);

@@ -1,50 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>POST to C Server</title>
-</head>
 <body>
-    <h1>Send Data to C Server</h1>
+    <h1>Mini Chat</h1>
 
-    %s
-
-    <p id="response"></p>
+    <div id="messages"></div>   <!-- chat lives here -->
 
     <input type="text" id="nameInput" placeholder="Enter your name" value="Alice">
-    <button onclick="sendData()">Send POST</button>
-    
+    <input type="text" id="msgInput" placeholder="Message...">
+    <button onclick="sendData()">Send</button>
+    <p id="status"></p>         <!-- errors/confirmations go here, NOT in the chat -->
+
     <script>
+        const msgBox = document.getElementById('messages');
 
-        const events = new EventSource('/api/stream');
+        // THE function that displays one message — works for history AND live
+        function addMessageToPage(m) {
+            const div = document.createElement('div');
+            div.textContent = `${m.name}: ${m.text ?? m.time}`;
+            msgBox.appendChild(div);
+            div.scrollIntoView();        // auto-scroll to newest
+        }
 
-        events.onmessage = (e) => {
-            const div = document.getElementById('response');
-            div.innerText += e.data + '\n';
-        };
+        // 1. load history once, then 2. connect the live stream
+        window.addEventListener('DOMContentLoaded', async () => {
+            const res = await fetch('/api/messages');
+            const msgs = await res.json();
+            for (const m of msgs) addMessageToPage(m);
 
+            const events = new EventSource('/api/stream');
+            events.onmessage = (e) => addMessageToPage(JSON.parse(e.data));
+        });
+
+        // sending: NO display update here — the SSE stream will bring
+        // your message back and display it like everyone else's
         function sendData() {
-            const name = document.getElementById('nameInput').value;
-            
             const payload = {
-                name: name,
+                name: document.getElementById('nameInput').value,
+                text: document.getElementById('msgInput').value,
                 time: new Date().toISOString()
             };
 
-            fetch('http://192.168.0.114:8080/api/data', {
+            fetch('/api/data', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             })
-            .then(response => response.text())
-            .then(data => {
-                document.getElementById('response').innerText = data;
+            .then(() => {
+                document.getElementById('msgInput').value = '';  // clear input
+                document.getElementById('status').innerText = '';
             })
-            .catch(error => {
-                document.getElementById('response').innerText = 'Error: ' + error;
+            .catch(err => {
+                document.getElementById('status').innerText = 'Error: ' + err;
             });
         }
     </script>
 </body>
-</html>
