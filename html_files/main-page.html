@@ -21,8 +21,11 @@
 
         // 1. load history once, then 2. connect the live stream
         window.addEventListener('DOMContentLoaded', async () => {
+            console.log("sund request\n");
             const res = await fetch('/api/messages');
-            const msgs = await res.json();
+            const msgs = await res.json(); //res.text()
+
+            console.log(msgs);
             for (const m of msgs) addMessageToPage(m);
 
             const events = new EventSource('/api/stream');

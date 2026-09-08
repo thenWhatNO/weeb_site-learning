@@ -3,24 +3,25 @@
 
 #include <stdlib.h>
 
-typedef struct {
-    int *fds;
-    int *ides;
-    int cap;
-    int size; 
+#define MAX_CLIENTS 1000
 
-} Client_socket;
+typedef struct {
+    char command[100];
+    int active;
+    int is_cl;
+} Clients_socket;
 
 // create the client socket strutc
-int init_client_sock(Client_socket *client_sock);
+int init_client_sock(Clients_socket *client_sock);
 
 // add new client to the struct
-int add_client(Client_socket *client_sock,int fd, int id);
+int add_client(Clients_socket *client_sock, int fd);
+int add_command_to_client(Clients_socket *client_sock, int fd, char *command);
 
-int remove_client(Client_socket *client_sock,int fd, int id);
+int last_open_socket(Clients_socket *client_sock);
 
-int clear_client_socket(Client_socket *client_sock);
+int remove_client(Clients_socket *client_sock,int fd);
 
-int update_clients_fd(Client_socket *client_sock);
+int clear_client_socket(Clients_socket *client_sock);
 
 #endif

@@ -130,7 +130,7 @@ int stop_server(Server_socket *server_sock){
 }
 
 int accept_server(  Server_socket *server_sock, 
-                    Client_socket *client_sock, 
+                    Clients_socket *client_sock, 
                     size_t timeout)
     {
     struct sockaddr_in new_client_sock;
@@ -154,7 +154,7 @@ int accept_server(  Server_socket *server_sock,
             return -1;
         }
 
-        add_client(client_sock, new_client, new_client);
+        add_client(client_sock, new_client);
     }
 
     return 0;
@@ -163,24 +163,26 @@ int accept_server(  Server_socket *server_sock,
 
 int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before useg.
                     Server_socket *server_sock ,
-                    Client_socket *client_socket,  
+                    Clients_socket *client_socket,  
                     size_t timeout)
     {
-
-    if (client_socket->size <= 0){return 0;}
     
     int i;
 
     fd_set clients;
     FD_ZERO(&clients);
 
-    for (i = 0; i <= client_socket->size; i++){
-        FD_SET(client_socket->fds[i], &clients);
+    for (i = 0; i < MAX_CLIENTS; i++){
+        if(client_socket[i].is_cl == 3){
+            FD_SET(i, &clients);
+        }
     }
 
     struct timeval tv = {timeout,0};
+
+    int last = last_open_socket(client_socket);
     
-    int res = select(client_socket->fds[client_socket->size-1]+1, &clients, NULL, NULL, &tv);
+    int res = select(last+1, &clients, NULL, NULL, &tv);
     if(res == 0){return 0;}
     else if(res == -1){
         perror("faild to select sesrver listion\n");
@@ -190,13 +192,15 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
     char buff[1024];
     memset(buff, 0, 1024);
 
-    for(i = 0; i <= client_socket->size; i++){
-        int cor_client = client_socket->fds[i];
-        if(FD_ISSET(cor_client, &clients) == 0){
+    for(i = 0; i < MAX_CLIENTS; i++){
+
+        if(client_socket[i].is_cl != 3){continue;}
+
+        if(FD_ISSET(i, &clients) == 0){
             continue;
         }
 
-        int get = recv(cor_client, buff, 1024, 0);
+        int get = recv(i, buff, 1024, 0);
         
         if(get == -1) {continue;}
         else if (get == 0){
@@ -204,7 +208,7 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
             // remove_client(client_socket, cor_client, client_socket->size);
         }
         else if (get > 0){
-            add_datagram(DTgrams, buff, cor_client, get);
+            add_datagram(DTgrams, buff, i, get);
         }
         
         memset(buff, 0, 1024);
@@ -214,10 +218,9 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 
 int send_datagram(  Server_socket *server_sock,
                     HTML_datagram *html_data,
-                    Client_socket *client_socket
+                    Clients_socket *client_socket
                 )
     {
-    if (client_socket->size <= 0){return 0;}
 
     if (html_data->len >= 9999){
         perror("the msg size of bigger then 9999\n");
@@ -226,16 +229,18 @@ int send_datagram(  Server_socket *server_sock,
 
     int get;
 
-    for (int i = 0; i < client_socket->size; i++){
+    for (int i = 0; i < MAX_CLIENTS; i++){
+
+        if(client_socket[i].is_cl != 3){continue;}
 
         if(html_data->updated){
-            get = send(client_socket->fds[i], html_data->html_msg, html_data->len, 0);
+            get = send(i, html_data->html_msg, html_data->len, 0);
         }
 
-        get = send(client_socket->fds[i], ": ping\n\n", 9, MSG_NOSIGNAL);
+        get = send(i, ": ping\n\n", 9, MSG_NOSIGNAL);
 
         if(get == -1){
-            remove_client(client_socket, client_socket->fds[i], client_socket->size);
+            remove_client(client_socket, i);
             return -1;
         }
     }
@@ -286,6 +291,16 @@ int read_client_msg(Datagram_store *DTgrams,
                     perror("faild to ansar to GET request in read function\n");
                 }
             } 
+            else if (strncmp(requst, "/api/messages", rqst_len) == 0){
+                char *buff = malloc(1);
+                size_t send_len = generate_msg(myfiles, &buff);
+
+                printf("%s\n", buff);
+                get = send(DTgrams->datagrams[i].client_id, buff, send_len, 0);
+                if (get <= 0){
+                    perror("faild to ansar to GET request in read function\n");
+                }
+            }
             else {
                 get = send(DTgrams->datagrams[i].client_id, ALIVE_HADR, strlen(ALIVE_HADR), 0);
                 if (get <= 0){
@@ -331,17 +346,12 @@ int read_client_msg(Datagram_store *DTgrams,
             char *client_data = calloc(client_data_len, sizeof(char));
             sprintf(client_data, "%s: %s [%s]\n", name, mesg, time);
 
-            printf("%s\n", client_data);
-
-            int snd = send(DTgrams->datagrams[i].client_id, client_data, client_data_len, 0);
-            if (snd <= 0){
-                perror("faild to send client data\n");
-            }
-
-            size_t w_data_l = sizeof(char) * (strlen(mesg) + 21);
+            size_t w_data_l = strlen(name) + strlen(mesg) + strlen(time) + 35;
             char *w_data = malloc(w_data_l);
-            sprintf(w_data, "<p>%s [%s]</p>\n", mesg, time);
+            sprintf(w_data, ",\n{\"name\":\"%s\",\"text\":\"%s\",\"time\":\"%s\"}\n]", name, mesg, time);
             
+            printf("%s\n", w_data);
+
             update_chat_file(myfiles, w_data, w_data_l);
 
             free(w_data);
@@ -371,14 +381,30 @@ int generate_data(  HTML_datagram *html_data,
     size_t total_len = html_len + strlen(hadr);
     char data_buff[total_len];
     
-    char ret = snprintf(data_buff, total_len, hadr, html_len, html_tamply);
-
+    snprintf(data_buff, total_len, hadr, html_len, html_tamply);
 
     write_msg_to_html(html_data, data_buff, total_len);
 
     free(html_tamply);
+    return total_len;
+}
 
-    return 1;
+int generate_msg(Files_struct *myfiles, char **buff){
+    char *chat_data = malloc(1);
+    size_t chat_len;
+
+    chat_len = read_file(myfiles, 'c', &chat_data);
+    size_t total_size = chat_len + strlen(MAEG_HADR);
+    
+    if(*buff == NULL){
+        *buff = malloc(total_size);
+    } else if (strlen(*buff) < total_size){
+        *buff = realloc(*buff, total_size);
+    }
+
+    snprintf(*buff, total_size, MAEG_HADR, chat_len, chat_data);
+
+    return total_size;
 }
 
 int init_html_struct(HTML_datagram *html_str){
@@ -414,7 +440,7 @@ int free_html_stract(HTML_datagram *html_data){
 }
 
 int open_files(Files_struct *myfiles){
-    myfiles->chat_file = fopen("html_files/chat_block.html", "r+");
+    myfiles->chat_file = fopen("html_files/chat_block.json", "r+");
     if (myfiles->chat_file == NULL){
         perror("cant open chat file. maybe not exist\n");
         return -1;
@@ -443,9 +469,10 @@ int update_chat_file(Files_struct *myfiles, char *data, size_t d_size){
         return -1;
     }
 
-    fseek(myfiles->chat_file, 0, SEEK_END);
+    fseek(myfiles->chat_file, -2, SEEK_END);
     if(fwrite(data, 1, d_size, myfiles->chat_file) != d_size){
         perror("could not write data into chat file\n");
+        rewind(myfiles->chat_file);
         return -1;
     }
     rewind(myfiles->chat_file);

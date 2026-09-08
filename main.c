@@ -11,8 +11,8 @@ int main(){
         return -1;
     }
 
-    Client_socket my_clients;
-    if (init_client_sock(& my_clients) == -1){
+    Clients_socket *my_clients = malloc(sizeof(Clients_socket) * MAX_CLIENTS);
+    if (init_client_sock(my_clients) == -1){
         perror("coulend initialize clients sockets\n");
         return -1;
     }
@@ -28,13 +28,13 @@ int main(){
     init_html_struct(&html_struct);
 
     while(1){
-        accept_server(&my_server, &my_clients, 1);
+        accept_server(&my_server, my_clients, 1);
 
-        listin_server(&my_datagrams, &my_server, &my_clients, 1);
+        listin_server(&my_datagrams, &my_server, my_clients, 1);
         
         read_client_msg(&my_datagrams, &html_struct, &my_files);
 
-        send_datagram(&my_server, &html_struct, &my_clients);
+        send_datagram(&my_server, &html_struct, my_clients);
         clear_datagram(&my_datagrams);
     }
     free_html_stract(&html_struct);
@@ -42,7 +42,7 @@ int main(){
     stop_server(&my_server);
 
     close_files(&my_files);
-    clear_client_socket(&my_clients);
+    clear_client_socket(my_clients);
     clear_datagram(&my_datagrams);
     close_server(&my_server);
 
