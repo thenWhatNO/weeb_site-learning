@@ -28,13 +28,14 @@ int main(){
     init_html_struct(&html_struct);
 
     while(1){
+        //send_datagram(&html_struct, my_clients, "");
+        //view_clients_status(my_clients);
+        
         accept_server(&my_server, my_clients, 1);
-
         listin_server(&my_datagrams, &my_server, my_clients, 1);
         
-        read_client_msg(&my_datagrams, &html_struct, &my_files);
+        read_client_msg(&my_datagrams, &html_struct, &my_files, my_clients);
 
-        send_datagram(&my_server, &html_struct, my_clients);
         clear_datagram(&my_datagrams);
     }
     free_html_stract(&html_struct);

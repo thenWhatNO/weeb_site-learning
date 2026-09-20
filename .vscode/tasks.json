@@ -11,6 +11,9 @@
                 "${workspaceFolder}/client.c",
                 "${workspaceFolder}/main.c",
                 "${workspaceFolder}/server.c",
+                "${workspaceFolder}/datagram.c",
+                "${workspaceFolder}/files.c",
+                "${workspaceFolder}/html_data.c",
                 "-o",
                 "${workspaceFolder}/myapp"
             ],

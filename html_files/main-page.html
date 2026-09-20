@@ -1,58 +1,208 @@
-<body>
-    <h1>Mini Chat</h1>
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Mini Chat</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
 
-    <div id="messages"></div>   <!-- chat lives here -->
+            body {
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                background: #1a1a2e;
+                color: #eee;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                max-width: 700px;
+                margin: 0 auto;
+                padding: 16px;
+            }
 
-    <input type="text" id="nameInput" placeholder="Enter your name" value="Alice">
-    <input type="text" id="msgInput" placeholder="Message...">
-    <button onclick="sendData()">Send</button>
-    <p id="status"></p>         <!-- errors/confirmations go here, NOT in the chat -->
+            h1 {
+                text-align: center;
+                font-size: 1.4rem;
+                padding: 8px 0 16px;
+                color: #a8b2ff;
+                letter-spacing: 1px;
+            }
 
-    <script>
-        const msgBox = document.getElementById('messages');
+            /* ---- chat area ---- */
+            #messages {
+                flex: 1;                    /* take all free space */
+                overflow-y: auto;           /* scroll when full */
+                background: #16213e;
+                border-radius: 12px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
 
-        // THE function that displays one message — works for history AND live
-        function addMessageToPage(m) {
-            const div = document.createElement('div');
-            div.textContent = `${m.name}: ${m.text ?? m.time}`;
-            msgBox.appendChild(div);
-            div.scrollIntoView();        // auto-scroll to newest
-        }
+            /* each message bubble — your JS creates plain divs inside #messages */
+            #messages div {
+                background: #0f3460;
+                padding: 10px 14px;
+                border-radius: 12px;
+                border-bottom-left-radius: 4px;
+                max-width: 80%;
+                width: fit-content;
+                line-height: 1.4;
+                word-wrap: break-word;
+                animation: pop 0.15s ease-out;
+            }
 
-        // 1. load history once, then 2. connect the live stream
-        window.addEventListener('DOMContentLoaded', async () => {
-            console.log("sund request\n");
-            const res = await fetch('/api/messages');
-            const msgs = await res.json(); //res.text()
+            @keyframes pop {
+                from { opacity: 0; transform: translateY(6px); }
+                to   { opacity: 1; transform: translateY(0); }
+            }
 
-            console.log(msgs);
-            for (const m of msgs) addMessageToPage(m);
+            /* subtle scrollbar */
+            #messages::-webkit-scrollbar { width: 6px; }
+            #messages::-webkit-scrollbar-thumb {
+                background: #0f3460;
+                border-radius: 3px;
+            }
 
-            const events = new EventSource('/api/stream');
-            events.onmessage = (e) => addMessageToPage(JSON.parse(e.data));
-        });
+            /* ---- input bar ---- */
+            .input-bar {
+                display: flex;
+                gap: 8px;
+                padding-top: 12px;
+            }
 
-        // sending: NO display update here — the SSE stream will bring
-        // your message back and display it like everyone else's
-        function sendData() {
-            const payload = {
-                name: document.getElementById('nameInput').value,
-                text: document.getElementById('msgInput').value,
-                time: new Date().toISOString()
-            };
+            input {
+                padding: 12px 14px;
+                border: none;
+                border-radius: 8px;
+                background: #16213e;
+                color: #eee;
+                font-size: 1rem;
+                outline: none;
+            }
 
-            fetch('/api/data', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
-            })
-            .then(() => {
-                document.getElementById('msgInput').value = '';  // clear input
-                document.getElementById('status').innerText = '';
-            })
-            .catch(err => {
-                document.getElementById('status').innerText = 'Error: ' + err;
+            input:focus {
+                box-shadow: 0 0 0 2px #a8b2ff55;
+            }
+
+            #nameInput { width: 140px; }
+            #msgInput  { flex: 1; }
+
+            button {
+                padding: 12px 22px;
+                border: none;
+                border-radius: 8px;
+                background: #a8b2ff;
+                color: #1a1a2e;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                transition: background 0.15s;
+            }
+
+            button:hover  { background: #c3caff; }
+            button:active { transform: scale(0.97); }
+
+            #status {
+                min-height: 1.2em;
+                font-size: 0.85rem;
+                color: #ff7b7b;
+                padding-top: 6px;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Mini Chat</h1>
+
+        <div id="messages"></div>
+
+        <div class="input-bar">
+            <input type="text" id="nameInput" placeholder="Name" value="Alice">
+            <input type="text" id="msgInput" placeholder="Message...">
+            <button onclick="sendData()">Send</button>
+        </div>
+        <p id="status"></p>
+
+        <script>
+            const msgBox = document.getElementById('messages');
+
+            function addMessageToPage(m) {
+                const div = document.createElement('div');
+                div.textContent = `${m.name}: ${m.text ?? m.time}`;
+                msgBox.appendChild(div);
+                div.scrollIntoView();
+            }
+
+            window.addEventListener('DOMContentLoaded', async () => {
+
+                // ---- STEP 1: history ----
+                console.log('[1] page loaded, fetching history...');
+                try {
+                    const res = await fetch('/api/messages');
+                    console.log('[2] history response status:', res.status);
+                    const raw = await res.text();
+                    console.log('[3] raw history body:', raw);
+                    const msgs = JSON.parse(raw);
+                    console.log('[4] parsed:', msgs.length, 'messages');
+                    for (const m of msgs) addMessageToPage(m);
+                } catch (err) {
+                    console.error('[!] history failed:', err);
+                }
+
+                // ---- STEP 2: live stream ----
+                console.log('[5] connecting SSE...');
+                const events = new EventSource('/api/stream');
+
+                events.onopen = () => {
+                    console.log('[6] SSE CONNECTED — server accepted the stream');
+                };
+
+                events.onmessage = (e) => {
+                    console.log('[7] SSE MESSAGE ARRIVED:', e.data);   // <-- the key line
+                    try {
+                        addMessageToPage(JSON.parse(e.data));
+                    } catch (err) {
+                        console.error('[!] bad JSON from server:', e.data);
+                    }
+                };
+
+                events.onerror = (err) => {
+                    console.log('[!] SSE connection lost/error', err);
+                };
             });
-        }
-    </script>
-</body>
+
+            function sendData() {
+                const payload = {
+                    name: document.getElementById('nameInput').value,
+                    text: document.getElementById('msgInput').value,
+                    time: new Date().toISOString()
+                };
+
+                console.log('[S] sending POST:', payload);
+
+                fetch('/api/data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                })
+                .then(res => {
+                    console.log('[S] POST answered, status:', res.status);
+                    document.getElementById('msgInput').value = '';
+                })
+                .catch(err => {
+                    console.error('[S] POST failed:', err);
+                    document.getElementById('status').innerText = 'Error: ' + err;
+                });
+
+                document.getElementById('msgInput').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') sendData();
+                });
+            }
+        </script>
+    </body>
+</html>

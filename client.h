@@ -1,9 +1,9 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include <stdlib.h>
+#define MAX_CLIENTS 20
 
-#define MAX_CLIENTS 1000
+#include "incldes_libs.h"
 
 typedef struct {
     char command[100];
@@ -20,8 +20,11 @@ int add_command_to_client(Clients_socket *client_sock, int fd, char *command);
 
 int last_open_socket(Clients_socket *client_sock);
 
-int remove_client(Clients_socket *client_sock,int fd);
+int remove_client(Clients_socket *client_sock, int fd);
+int view_client_status(Clients_socket *client_sock, int fd);
 
 int clear_client_socket(Clients_socket *client_sock);
+
+int view_clients_status(Clients_socket *client_sock);
 
 #endif
