@@ -3,10 +3,7 @@
 
 #include "incldes_libs.h"
 
-typedef struct {
-    FILE *html_file;
-    FILE *chat_file;
-} Files_struct;
+typedef struct Files_struct Files_struct;
 
 //     working with files
 int open_files(Files_struct *myfiles);

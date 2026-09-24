@@ -1,5 +1,17 @@
+#include "client.h"
+#include "html_data.h"
+#include "datagram.h"
+#include "files_m.h"
 #include "server.h"
+
 #include <string.h>
+
+typedef struct {
+    int fd; //soket number
+    char *ip;
+    struct addrinfo *server_info;
+    int status; // 1 running, 0 off
+} Server_socket;
 
 
 int initilize_server(char *ip, char *port, Server_socket *server_sock){
@@ -170,48 +182,6 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
         
         memset(buff, 0, 1024);
     }
-    return 0;
-}
-
-int send_datagram(  HTML_datagram *html_data,
-                    Clients_socket *client_socket,
-                    char *others
-                )
-    {
-
-    if (html_data->len >= 9999){
-        perror("the msg size of bigger then 9999\n");
-        return -1;
-    }
-
-    int get;
-
-    for (int i = 0; i < MAX_CLIENTS; i++){
-        
-        if(client_socket[i].is_cl != 3){continue;}
-        
-        size_t others_len = strlen(others);
-        if(others_len > 0){
-            if(strncmp(client_socket[i].command , "/api/stream", 11) != 0){continue;}
-            char frame[1024];
-            int len = snprintf(frame, sizeof(frame),
-                            "data: %s\n\n",
-                            others);
-            
-            get = send(i, frame, len, MSG_NOSIGNAL);
-            continue;
-        }
-
-        if(html_data->updated){
-            get = send(i, html_data->html_msg, html_data->len, 0);
-            continue;
-        }
-        
-        if(!view_client_status(client_socket, i)){
-            remove_client(client_socket, i);
-        }
-    }
-    html_data->updated = 0;
     return 0;
 }
 

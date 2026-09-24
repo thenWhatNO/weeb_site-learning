@@ -5,14 +5,10 @@
 
 #include "incldes_libs.h"
 
-typedef struct {
-    char command[100];
-    int active;
-    int is_cl;
-} Clients_socket;
+typedef struct Clients_socket Clients_socket;
 
 // create the client socket strutc
-int init_client_sock(Clients_socket *client_sock);
+Clients_socket *init_client_sock();
 
 // add new client to the struct
 int add_client(Clients_socket *client_sock, int fd);

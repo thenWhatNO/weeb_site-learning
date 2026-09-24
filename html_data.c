@@ -2,14 +2,44 @@
 #include "datagram.h"
 #include "files_m.h"
 
-int init_html_struct(HTML_datagram *html_str){
+typedef struct{
+    char *html_msg;
+    int len;
+    int cap;
+    int updated;
+} HTML_datagram; 
+
+
+int applay_haders(  char *buff, 
+                    size_t buff_size, 
+                    char *hadder, 
+                    char *data, 
+                    size_t data_l
+                )
+    {
+    char *HADER_C = strcasestr(hadder, "Content-Length");
+    if(HADER_C != NULL){
+        snprintf(buff, buff_size, hadder, data_l, data);
+    } else {
+        snprintf(buff, buff_size, hadder, data);
+    }
+    return 0;
+}
+
+
+
+
+HTML_datagram *init_html_struct(){
+
+    HTML_datagram *html_str = malloc(sizeof(HTML_datagram));
+
     html_str->cap = 10;
     html_str->len = 0;
     html_str->html_msg = calloc(html_str->cap, sizeof(char));
 
     if(html_str->html_msg == NULL){return -1;}
 
-    return 0;
+    return html_str;
 }
 
 int write_msg_to_html(HTML_datagram *html_data, char *msg, size_t msg_len){

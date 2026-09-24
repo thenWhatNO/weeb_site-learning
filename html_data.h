@@ -7,15 +7,11 @@
 
 #include "incldes_libs.h"
 
+typedef struct HTML_datagram HTML_datagram;
 
-typedef struct{
-    char *html_msg;
-    int len;
-    int cap;
-    int updated;
-} HTML_datagram; 
+HTML_datagram *init_html_struct();
+int applay_haders(char *buff, size_t buff_size, char *hadder, char *data , size_t data_l);
 
-int init_html_struct(HTML_datagram *html_str);
 int write_msg_to_html(HTML_datagram *html_data, char *msg, size_t msg_len);
 int free_html_stract(HTML_datagram *html_data);
 

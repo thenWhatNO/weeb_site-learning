@@ -1,5 +1,10 @@
 #include "files_m.h"
 
+typedef struct {
+    FILE *html_file;
+    FILE *chat_file;
+} Files_struct;
+
 int open_files(Files_struct *myfiles){
     myfiles->chat_file = fopen("html_files/chat_block.json", "r+");
     if (myfiles->chat_file == NULL){
