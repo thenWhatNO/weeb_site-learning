@@ -1,30 +1,26 @@
 #include "files_m.h"
 
-typedef struct {
-    FILE *html_file;
-    FILE *chat_file;
-} Files_struct;
+struct File_unit{
+    FILE *ptr;
+    char *name;
+    char *der;
+};
+
+struct Files_struct{
+    int cap;
+    int len;
+    File_unit *FU;
+};
+
 
 int open_files(Files_struct *myfiles){
-    myfiles->chat_file = fopen("html_files/chat_block.json", "r+");
-    if (myfiles->chat_file == NULL){
-        perror("cant open chat file. maybe not exist\n");
-        return -1;
-    }
-
-    myfiles->html_file = fopen("html_files/main-page.html", "r+");
-    if (myfiles->html_file == NULL){
-        perror("cant open html page file. maybe not exist\n");
-        fclose(myfiles->chat_file);
-        return -1;
-    }
+    //
 
     return 0;
 }
 
 int close_files(Files_struct *myfiles){
-    fclose(myfiles->chat_file);
-    fclose(myfiles->html_file);
+    // rebiuld
 
     return 0;
 }

@@ -5,17 +5,13 @@
 #define ALIVE_HADR "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-cache\r\nConnection: keep-alive\r\n\r\n"
 #define MAEG_HADR "HTTP/1.1 200 OK\r\nContent-Length: %zu\r\n\r\n%s"
 
-#include "incldes_libs.h"
+typedef struct HTML_page HTML_page;
+typedef struct HTML_page_store HTML_page_store;
 
-typedef struct HTML_datagram HTML_datagram;
+HTML_page_store *init_html_struct();
+int add_html_page(HTML_page_store *hps, char *name, int name_size, char *link, int link_size, char *file_link);
+int free_html_page_store(HTML_page_store *hps);
 
-HTML_datagram *init_html_struct();
 int applay_haders(char *buff, size_t buff_size, char *hadder, char *data , size_t data_l);
-
-int write_msg_to_html(HTML_datagram *html_data, char *msg, size_t msg_len);
-int free_html_stract(HTML_datagram *html_data);
-
-int generate_data(HTML_datagram *html_data, Files_struct *myfiles, Datagram_store *DTgrams, char *hadr);
-int generate_msg(Files_struct *myfiles, char *buff);
 
 #endif

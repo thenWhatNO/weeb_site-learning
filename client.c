@@ -1,12 +1,11 @@
-#include <stdio.h>
-#include <string.h>
+#include "incldes_libs.h"
 #include "client.h"
 
-typedef struct {
+struct Clients_socket{
     char command[100];
     int active;
     int is_cl;
-} Clients_socket;
+};
 
 Clients_socket *init_client_sock(){
 
@@ -116,6 +115,11 @@ int view_clients_status(Clients_socket *client_sock){
     for(int i = 0; i < MAX_CLIENTS; i++){
         printf("%d\t\t%d\t\t%s\n", i, client_sock[i].is_cl, client_sock[i].command);
     }
-    print("pres Q to stop\n");
+    printf("pres Q to stop\n");
+    return 0;
+}
+
+int is_client_true(Clients_socket *client_sock, int index){
+    if(client_sock[index].is_cl == 3) return 1;
     return 0;
 }

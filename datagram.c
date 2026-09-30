@@ -1,27 +1,33 @@
+#include <stddef.h>
 #include "datagram.h"
-#include "server.h"
-#include "html_data.h"
+#include "incldes_libs.h"
 
-
-typedef struct {
+struct Datagram{
     char *msg;
     int client_id;
     int msg_size;
-    //todo add time :3
-} Datagram;
+    //todo add time :3 NEVER!!
+};
 
-typedef struct {
+struct Datagram_store{
     int size;
     int cap;
     Datagram *datagrams;
-} Datagram_store;
+};
 
-typedef struct {
+struct Packeg{
     char command[18];
+    size_t link_size;
     char *link;
-    size_t datasize;
+    size_t data_size;
     char *data;
-} Packeg;
+};
+
+char *get_packeg_command(Packeg *p){return p->command;};
+char *get_packeg_link(Packeg *p){return p->link;};
+char *get_packeg_data(Packeg *p){return p->data;};
+size_t get_packeg_link_size(Packeg *p){return p->link_size;};
+size_t get_packeg_data_size(Packeg *p){return p->data_size;};
 
 Datagram_store *init_datagramstore(){
 
@@ -79,6 +85,8 @@ Packeg *read_datagram(Datagram *dg){
         sscanf(dg->msg, "GET %s", requst);
         size_t rqst_len = strlen(requst);
 
+        pkg->link_size = rqst_len;
+
         pkg->link = malloc(rqst_len);
         if(pkg->link == NULL){
             free(pkg);
@@ -95,17 +103,17 @@ Packeg *read_datagram(Datagram *dg){
         strcpy(pkg->command, "POST");
 
         char *cl = strcasestr(dg->msg, "Content-Length:");
-        pkg->datasize = atoi(cl+15);
-        pkg->data = malloc(pkg->datasize);
+        pkg->data_size = atoi(cl+15);
+        pkg->data = malloc(pkg->data_size);
 
         if(pkg->data == NULL){
             free(pkg);
             return NULL;
         }
 
-        int start = dg->msg_size - pkg->datasize;
+        int start = dg->msg_size - pkg->data_size;
         strcpy(pkg->data,dg->msg + start);
-        pkg->data,dg->msg[pkg->datasize+1] = '\0';
+        pkg->data,dg->msg[pkg->data_size+1] = '\0';
     }
 }
 
@@ -122,117 +130,4 @@ int free_datagram(Packeg *dg){
     if(dg->data != NULL || dg->link != NULL)return -1;
 
     return 1;
-}
-
-
-// this functio well be moved to new place intull i undestend how
-int read_client_msg_copy(Datagram *DTgrams,
-                    char html_data, // can bee change to char data type
-                    size_t html_data_l,
-                    Files_struct *myfiles,
-                    Clients_socket *client_sock
-                )
-    {
-
-    char *HADER_C = strcasestr(DTgrams->msg, "GET"); // check if its a GET
-    if(HADER_C != NULL){
-
-        char requst[100];
-        sscanf(DTgrams->msg, "GET %s", requst);
-        size_t rqst_len = strlen(requst);
-
-        int get;
-        
-        // this line saave the command from the get datagram and assaine it to the structk.
-        strcpy(client_sock[DTgrams->client_id].command, requst);
-
-        if (strncmp(requst, "/", rqst_len) == 0){
-            //generate_data(html_data, myfiles, DTgrams, MAIN_HADR);
-
-            if (html_data_l >= 9999){
-                perror("the msg size of bigger then 9999\n");
-                return -1;
-            }
-            
-            get = send(DTgrams->client_id, html_data, html_data_l, 0);
-            if (get <= 0){
-                perror("faild to ansar to GET request in read function\n");
-            }
-        } 
-        else if (strncmp(requst, "/api/messages", rqst_len) == 0){
-            char buff[8000];
-            size_t send_len = generate_msg(myfiles, buff);
-
-            get = send(DTgrams->client_id, buff, send_len, 0);
-            if (get <= 0){
-                perror("faild to ansar to GET request in read function\n");
-            }
-        }
-        else if(strncmp(requst, "/api/stream", rqst_len) == 0){
-            char headers[] =
-            "HTTP/1.1 200 OK\r\n"
-            "Content-Type: text/event-stream\r\n"
-            "Cache-Control: no-cache\r\n"
-            "Connection: keep-alive\r\n"
-            "\r\n";
-
-            send(DTgrams->client_id, headers, strlen(headers), 0);
-        }
-        else {
-            get = send(DTgrams->client_id, ALIVE_HADR, strlen(ALIVE_HADR), 0);
-            if (get <= 0){
-                perror("faild to ansar to GET request in read function\n");
-            }
-        }
-
-        return 0;
-    }
-    
-    HADER_C = strcasestr(DTgrams->msg, "POST"); // check if it a POST, and do the rest
-    if(HADER_C == NULL){return 0;}
-    else {
-        char *cl = strcasestr(DTgrams->msg, "Content-Length:");
-
-        if(cl == NULL){
-            const char *resp = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
-            printf("sending error msg to client %d", DTgrams->client_id);
-            send(DTgrams->client_id, resp, strlen(resp), 0);
-            remove_client(client_sock, DTgrams->client_id);
-            return 0;
-        }
-
-        int content_Length = atoi(cl+15);
-
-        char *content = calloc(content_Length+1, sizeof(char));
-        if(content == NULL){return -1;}
-
-        int start = DTgrams->msg_size - content_Length;
-        strcpy(content, DTgrams->msg + start);
-        content[content_Length+1] = '\0';
-
-        char mesg[100];
-        char time[100];
-        char name[100];
-
-        sscanf(content, "{\"name\":\"%[^\"]\",\"text\":\"%[^\"]\",\"time\":\"%10[^\"]\"}", name, mesg, time);
-
-        size_t client_data_len = strlen(mesg) + 14;
-        char *client_data = calloc(client_data_len, sizeof(char));
-        sprintf(client_data, "%s: %s [%s]\n", name, mesg, time);
-
-        size_t w_data_l = strlen(name) + strlen(mesg) + strlen(time) + 35;
-        char *w_data = malloc(w_data_l);
-        sprintf(w_data, ",\n{\"name\":\"%s\",\"text\":\"%s\",\"time\":\"%s\"}\n]", name, mesg, time);
-
-        update_chat_file(myfiles, w_data, w_data_l);
-
-        send(DTgrams->client_id, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
-        send_datagram(html_data, client_sock, content);
-        
-        free(w_data);
-        free(content);
-        free(client_data);
-
-        generate_data(html_data, myfiles, DTgrams, MAIN_HADR);
-    }
 }

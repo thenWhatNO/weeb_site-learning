@@ -11,7 +11,12 @@ int free_datagram_store(Datagram_store *datagram);
 Packeg *read_datagram(Datagram *dg);
 int free_datagram(Packeg *dg);
 
+char *get_packeg_command(Packeg *p);
+char *get_packeg_link(Packeg *p);
+char *get_packeg_data(Packeg *p);
+size_t get_packeg_data_size(Packeg *p);
+size_t get_packeg_link_size(Packeg *p);
+
 // int generate_html_chat () : generate the html pyje;
-int read_client_msg(Datagram_store *DTgrams, HTML_datagram *html_data, Files_struct *myfiles, Clients_socket *client_sock);
 
 #endif

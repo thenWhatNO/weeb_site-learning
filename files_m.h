@@ -4,6 +4,7 @@
 #include "incldes_libs.h"
 
 typedef struct Files_struct Files_struct;
+typedef struct File_unit File_unit;
 
 //     working with files
 int open_files(Files_struct *myfiles);

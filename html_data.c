@@ -1,14 +1,80 @@
 #include "html_data.h"
-#include "datagram.h"
-#include "files_m.h"
+#include "incldes_libs.h"
 
-typedef struct{
-    char *html_msg;
+struct HTML_page{
+    char *name;
+    char *link;
+    char *data;
+    int size;
+};
+
+struct HTML_page_store{
     int len;
     int cap;
-    int updated;
-} HTML_datagram; 
+    HTML_page *pages;
+}; 
 
+HTML_page_store *init_html_struct(){
+    HTML_page_store *hps = malloc(sizeof(HTML_page_store));
+
+    hps->cap = 10;
+    hps->len = 0;
+    hps->pages = malloc(sizeof(HTML_page) * hps->cap);
+
+    return hps;
+}
+
+int add_html_page(  HTML_page_store *hps, 
+                    char *name,
+                    int name_size,
+                    char *link,
+                    int link_size,
+                    char *file_link
+                )
+    {
+
+    if(hps->len >= hps->cap){
+        hps->cap += 10;
+        hps->pages = realloc(hps->pages, hps->cap);
+    }
+
+    FILE *fl = fopen(file_link, "r");
+    fseek(fl, 0, SEEK_END);
+    long file_l = ftell(fl);
+    rewind(fl);
+    
+    hps->pages[hps->len].data = malloc(file_l+1);
+    hps->pages[hps->len].size = file_l+1;
+
+    size_t full_l = fread(hps->pages[hps->len].data, 1, file_l, fl);
+    (hps->pages[hps->len].data)[full_l] = '\0';
+
+    hps->pages[hps->len].name = malloc(name_size);
+    hps->pages[hps->len].link = malloc(link_size);
+
+    strcpy(hps->pages[hps->len].name, name);
+    strcpy(hps->pages[hps->len].link, link);
+
+    hps->len++;
+
+    return 0;
+}
+
+int free_html_page_store(HTML_page_store *hps){
+    for (int i = 0; i < hps->len; i++){
+        free(hps->pages[i].name);
+        free(hps->pages[i].link );
+        free(hps->pages[i].data );
+        hps->pages[i].name = NULL;
+        hps->pages[i].link = NULL;
+        hps->pages[i].data = NULL;
+    }
+
+    free(hps);
+    hps = NULL;
+
+    return 0;
+}
 
 int applay_haders(  char *buff, 
                     size_t buff_size, 
@@ -25,76 +91,3 @@ int applay_haders(  char *buff,
     }
     return 0;
 }
-
-
-
-
-HTML_datagram *init_html_struct(){
-
-    HTML_datagram *html_str = malloc(sizeof(HTML_datagram));
-
-    html_str->cap = 10;
-    html_str->len = 0;
-    html_str->html_msg = calloc(html_str->cap, sizeof(char));
-
-    if(html_str->html_msg == NULL){return -1;}
-
-    return html_str;
-}
-
-int write_msg_to_html(HTML_datagram *html_data, char *msg, size_t msg_len){
-    if(html_data->cap < msg_len){
-        html_data->cap = msg_len;
-        html_data->html_msg = realloc(html_data->html_msg, html_data->cap);
-    }
-
-    html_data->len = msg_len;
-
-    if (html_data->html_msg == NULL){return -1;}
-    memset(html_data->html_msg, 0, html_data->cap);
-    strcpy(html_data->html_msg, msg);
-
-    return 0;
-}
-
-int free_html_stract(HTML_datagram *html_data){
-    free(html_data->html_msg);
-    html_data->html_msg = NULL;
-
-    return 0;
-}
-
-int generate_data(  HTML_datagram *html_data, 
-                    Files_struct *myfiles, 
-                    Datagram_store *DTgrams,
-                    char *hadr
-                )
-    {
-    
-    char html_tamply[8000];
-    size_t html_len;
-
-    html_len = read_file(myfiles, 'm', html_tamply, 8000);
-
-    size_t total_len = html_len + strlen(hadr);
-    char data_buff[total_len];
-    
-    snprintf(data_buff, total_len, hadr, html_len, html_tamply);
-
-    write_msg_to_html(html_data, data_buff, total_len);
-
-    return total_len;
-}
-
-int generate_msg(Files_struct *myfiles, char *buff){
-    char chat_data[8000];
-    size_t chat_len;
-
-    chat_len = read_file(myfiles, 'c', chat_data, 8000);
-    size_t total_size = chat_len + strlen(MAEG_HADR);
-
-    snprintf(buff, total_size, MAEG_HADR, chat_len, chat_data);
-
-    return total_size;
-}
-
