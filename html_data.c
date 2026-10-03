@@ -12,7 +12,15 @@ struct HTML_page_store{
     int len;
     int cap;
     HTML_page *pages;
-}; 
+};
+
+HTML_page *get_html_page(HTML_page_store *hps, int idx){return &hps->pages[idx];};
+
+char *get_HP_name(HTML_page *hp){return hp->name;}
+char *get_HP_link(HTML_page *hp){return hp->link;}
+char *get_HP_data(HTML_page *hp){return hp->data;}
+int *get_HP_size(HTML_page *hp){return hp->size;}
+
 
 HTML_page_store *init_html_struct(){
     HTML_page_store *hps = malloc(sizeof(HTML_page_store));
@@ -58,6 +66,15 @@ int add_html_page(  HTML_page_store *hps,
     hps->len++;
 
     return 0;
+}
+
+int get_html_gape_by_link(HTML_page_store *hps, char *link, int link_size){
+    for (int i = 0; i < hps->len; i++){
+        if(strncmp(hps->pages[i].link, link, link_size) == 0){
+            return i;
+        }
+    }
+    return -1;
 }
 
 int free_html_page_store(HTML_page_store *hps){

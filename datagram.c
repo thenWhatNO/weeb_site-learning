@@ -9,11 +9,18 @@ struct Datagram{
     //todo add time :3 NEVER!!
 };
 
+int get_datagram_client_fd(Datagram *DG){return DG->client_id;}
+char *get_datagram_msg(Datagram *DG){return DG->msg;}
+int get_datagram_msg_size(Datagram *DG){return DG->msg_size;}
+
 struct Datagram_store{
     int size;
     int cap;
     Datagram *datagrams;
 };
+
+int get_datagram_store_size(Datagram_store *Dgs){return Dgs->size;}
+Datagram get_datagram_store_datagram(Datagram_store *Dgs, int indx){return Dgs->datagrams[indx];}
 
 struct Packeg{
     char command[18];

@@ -52,8 +52,7 @@ int listin_server(  Datagram_store *DTgrams,  // this sould be preperd before us
 }
 
 int read_client_msg_copy(   Packeg *pkg,
-                            char *html_data, // can bee change to char data type
-                            size_t html_data_l,
+                            HTML_page_store *html_data,
                             Files_struct *myfiles,
                             Clients_socket *client_sock,
                             int client_fd
@@ -68,21 +67,27 @@ int read_client_msg_copy(   Packeg *pkg,
         char *pkg_link = get_packeg_link(pkg);
         size_t pgk_link_size = get_packeg_link_size(pkg);
 
-        if (strncmp(pkg_link, "/", pgk_link_size) == 0){
+        int html_page_index = get_html_gape_by_link(html_data, pkg_link, pgk_link_size);
+        char *html_page = NULL;
+        if(html_page_index != 0){
+            HTML_page *HP = get_html_page(html_data, html_page_index);
+            int page_size = get_HP_size(HP);
+            html_page = malloc(page_size);
+            strcpy(html_page, get_HP_data(HP));
 
-            if (html_data_l >= 9999){
-                perror("the msg size of bigger then 9999\n");
-                return -1;
-            }
-            
-            get = send(client_fd, html_data, html_data_l, 0);
-            if (get <= 0){
-                perror("faild to ansar to GET request in read function\n");
-            }
-        } 
-        else if (strncmp(pkg_link, "/api/messages", pgk_link_size) == 0){
+            size_t final_size = page_size + sizeof(MAIN_HADR);
+            char *final_page = malloc(final_size);
+            applay_haders(final_page, final_size, MAIN_HADR, final_page, page_size);
+
+            if (send(client_fd, final_page, final_size, 0) == -1){perror("faild to send client a html page\n");}
+
+            free(html_page);
+            free(final_page);
+        }
+        
+        if (strncmp(pkg_link, "/api/messages", pgk_link_size) == 0){
             char buff[8000];
-            size_t send_len = generate_msg(myfiles, buff);
+            size_t send_len = 1; // add the thing
 
             get = send(client_fd, buff, send_len, 0);
             if (get <= 0){
@@ -122,27 +127,22 @@ int read_client_msg_copy(   Packeg *pkg,
             return 0;
         }
 
-        char mesg[100];
-        char time[100];
-        char name[100];
+        char  *file_name_ptr = strcasestr(pkg_data, "file");
+        file_name_ptr += 7;
+        if(file_name_ptr != NULL){            
+            char buff[100];
+            int i = 0;
+            while(true){
+                if (*file_name_ptr == '\"'){break;}
+                buff[i] = *file_name_ptr++;
+                i++;
+            }
 
-        sscanf(pkg_data, "{\"name\":\"%[^\"]\",\"text\":\"%[^\"]\",\"time\":\"%10[^\"]\"}", name, mesg, time);
+            update_file(myfiles, buff, pkg_data, pkg_data_size, 2);
+        }
 
-        size_t client_data_len = strlen(mesg) + 14;
-        char *client_data = malloc(client_data_len);
-        sprintf(client_data, "%s: %s [%s]\n", name, mesg, time);
-
-        size_t w_data_l = strlen(name) + strlen(mesg) + strlen(time) + 35;
-        char *w_data = malloc(w_data_l);
-        sprintf(w_data, ",\n{\"name\":\"%s\",\"text\":\"%s\",\"time\":\"%s\"}\n]", name, mesg, time);
-
-        update_chat_file(myfiles, w_data, w_data_l);
 
         send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
         global_sand(client_sock, pkg_data, pkg_data_size);
-        
-        free(w_data);
-        free(client_data);
-
     }
 }

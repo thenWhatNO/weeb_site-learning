@@ -1,7 +1,6 @@
 #include "files_m.h"
 
 struct File_unit{
-    FILE *ptr;
     char *name;
     char *der;
 };
@@ -12,44 +11,57 @@ struct Files_struct{
     File_unit *FU;
 };
 
+Files_struct *init_File_struct(){
+    Files_struct *Fu = malloc(sizeof(Files_struct));
+    Fu->cap = 5;
+    Fu->len = 0;
+    return Fu;
+}
 
-int open_files(Files_struct *myfiles){
-    //
+int add_file(Files_struct *myfiles, char *name, char *der){
+    myfiles->FU = malloc(sizeof(File_unit));
+    myfiles->FU->der = malloc(strlen(der));
+    myfiles->FU->name = malloc(strlen(name));
+
+    strcpy(myfiles->FU->name, name);
+    strcpy(myfiles->FU->der, der);
 
     return 0;
 }
 
-int close_files(Files_struct *myfiles){
-    // rebiuld
-
-    return 0;
-}
-
-int update_chat_file(Files_struct *myfiles, char *data, size_t d_size){
-    if(d_size > 9999){
-        perror("data size too big to save in the file\n");
-        return -1;
+int fine_fd_by_name(Files_struct *myfiles, char *name){
+    for (int i = 0; i < myfiles->len; i++){
+        if(strcmp(myfiles->FU[i].name, name) == 0) return i;
     }
+    return -1;
+}
 
-    fseek(myfiles->chat_file, -2, SEEK_END);
-    if(fwrite(data, 1, d_size, myfiles->chat_file) != d_size){
+int update_file(    Files_struct *myfiles, 
+                    char *name, char *data, 
+                    size_t d_size, 
+                    int offset
+                )
+    {
+    int id = fine_fd_by_name(myfiles, name);
+
+    FILE *file = fopen(myfiles->FU[id].der, "w+");
+
+    fseek(file, -offset, SEEK_END);
+    if(fwrite(data, 1, d_size, file) != d_size){
         perror("could not write data into chat file\n");
-        rewind(myfiles->chat_file);
+        rewind(file);
         return -1;
     }
-    rewind(myfiles->chat_file);
+    rewind(file);
+
+    fclose(file);
     return 0;
 }
 
-int read_file(Files_struct *myfiles, char file, char *buffer, size_t buffer_size){
-    FILE *ptr = NULL;
-    if (file == 'm'){
-        ptr = myfiles->html_file;
-    }
-    if(file == 'c'){
-        ptr = myfiles->chat_file;
-    }
-    
+int read_file(Files_struct *myfiles, char name, char *buffer, size_t buffer_size){
+    int id = fine_fd_by_name(myfiles, name);
+    FILE *ptr = fopen(myfiles->FU[id].der, "r");;
+
     if(ptr == NULL){
         return -1;
     }
@@ -65,6 +77,8 @@ int read_file(Files_struct *myfiles, char file, char *buffer, size_t buffer_size
 
     size_t full_l = fread(buffer, 1, file_size, ptr);
     (buffer)[full_l] = '\0';
+
+    fclose(ptr);
 
     return full_l;
 }
