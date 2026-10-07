@@ -64,12 +64,17 @@ int read_client_msg_copy(   Packeg *pkg,
     char *pkg_command = get_packeg_command(pkg); 
 
     if(strcmp(pkg_command, "GET") == 0){
+        
         char *pkg_link = get_packeg_link(pkg);
         size_t pgk_link_size = get_packeg_link_size(pkg);
+        
+        char buff[100];
+        sprintf(buff ,"%s %s", pkg_command, pkg_link);
+        add_command_to_client(client_sock, client_fd, buff);
 
         int html_page_index = get_html_gape_by_link(html_data, pkg_link, pgk_link_size);
         char *html_page = NULL;
-        if(html_page_index != 0){
+        if(html_page_index >= 0){
             HTML_page *HP = get_html_page(html_data, html_page_index);
             int page_size = get_HP_size(HP);
             html_page = malloc(page_size);
@@ -77,24 +82,32 @@ int read_client_msg_copy(   Packeg *pkg,
 
             size_t final_size = page_size + sizeof(MAIN_HADR);
             char *final_page = malloc(final_size);
-            applay_haders(final_page, final_size, MAIN_HADR, final_page, page_size);
+            applay_haders(final_page, final_size, MAIN_HADR, html_page, page_size);
 
             if (send(client_fd, final_page, final_size, 0) == -1){perror("faild to send client a html page\n");}
 
             free(html_page);
             free(final_page);
-        }
-        
-        if (strncmp(pkg_link, "/api/messages", pgk_link_size) == 0){
-            char buff[8000];
-            size_t send_len = 1; // add the thing
 
-            get = send(client_fd, buff, send_len, 0);
+            remove_client(client_sock, client_fd);
+        }
+        if (strcmp(pkg_link, "/api/messages") == 0){
+            char buff[8000];
+
+            size_t send_len = read_file(myfiles, "chat", buff, 8000);
+
+            char aha[send_len+2];
+            memset(aha, 0, send_len+2);
+            sprintf(aha, "[%s]", buff);
+
+            get = send(client_fd, aha, send_len+2, 0);
             if (get <= 0){
                 perror("faild to ansar to GET request in read function\n");
             }
+            
+            remove_client(client_sock, client_fd);
         }
-        else if(strncmp(pkg_link, "/api/stream", pgk_link_size) == 0){
+        else if(strcmp(pkg_link, "/api/stream") == 0){
             char headers[] =
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: text/event-stream\r\n"
@@ -116,10 +129,12 @@ int read_client_msg_copy(   Packeg *pkg,
     
     if(strcmp(pkg_command, "POST") == 0){
 
+        add_command_to_client(client_sock, client_fd, pkg_command);
+
         char *pkg_data = get_packeg_data(pkg);
         size_t pkg_data_size = get_packeg_data_size(pkg);
 
-        if(pkg_data){
+        if(pkg_data_size <= 0){
             const char *resp = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n";
             printf("sending error msg to client %d", client_fd);
             send(client_fd, resp, strlen(resp), 0);
@@ -129,20 +144,25 @@ int read_client_msg_copy(   Packeg *pkg,
 
         char  *file_name_ptr = strcasestr(pkg_data, "file");
         file_name_ptr += 7;
+        char buff[100];
+        memset(buff, 0, 100);
         if(file_name_ptr != NULL){            
-            char buff[100];
             int i = 0;
             while(true){
                 if (*file_name_ptr == '\"'){break;}
                 buff[i] = *file_name_ptr++;
                 i++;
             }
+            printf("name of the file is : %s\n", buff);
 
-            update_file(myfiles, buff, pkg_data, pkg_data_size, 2);
+            char fl_data[pkg_data_size+2];
+            sprintf(fl_data, ",%s\n", pkg_data);
+            update_file(myfiles, buff, fl_data, pkg_data_size+2, 0);
         }
 
-
-        send(client_fd, "HTTP/1.1 200 OK\r\n\r\n", 19, 0);
+        send(client_fd, pkg_data, pkg_data_size, 0);
+        //send(client_fd, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n", 19, 0);
         global_sand(client_sock, pkg_data, pkg_data_size);
+        remove_client(client_sock, client_fd);
     }
 }

@@ -20,8 +20,6 @@ int remove_client(Clients_socket *client_sock, int fd);
 int view_client_status(Clients_socket *client_sock, int fd);
 int global_sand(Clients_socket *client_socket, char *data, size_t data_l);
 
-int clear_client_socket(Clients_socket *client_sock);
-
 int is_client_true(Clients_socket *client_sock, int index);
 
 int view_clients_status(Clients_socket *client_sock);

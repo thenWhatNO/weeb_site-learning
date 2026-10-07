@@ -10,7 +10,7 @@ char *get_datagram_msg(Datagram *DG);
 typedef struct Datagram_store Datagram_store;
 
 int get_datagram_store_size(Datagram_store *Dgs);
-Datagram get_datagram_store_datagram(Datagram_store *Dgs, int indx);
+Datagram *get_datagram_store_datagram(Datagram_store *Dgs, int indx);
 
 typedef struct Packeg Packeg;
 
@@ -33,10 +33,8 @@ Packeg *read_datagram(Datagram *dg);
 int free_datagram(Packeg *dg);
 
 // clear the datagram store stract. used at the end
+int clear_datagram_store(Datagram_store *datagram);
 int free_datagram_store(Datagram_store *datagram);
-
-
-
 
 // int generate_html_chat () : generate the html pyje;
 

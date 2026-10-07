@@ -178,6 +178,7 @@
 
             function sendData() {
                 const payload = {
+                    file: "chat",
                     name: document.getElementById('nameInput').value,
                     text: document.getElementById('msgInput').value,
                     time: new Date().toISOString()

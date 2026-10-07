@@ -1,47 +1,10 @@
-[
-{"name":"Alice","text":"hi","time":"10/10/2026"},
-{"name":"Bob","text":"yo","time":"10/10/2026"},
-{"name":"eli","text":"jhfdjsfdjsfdjk","time":"2026-09-06"},
-{"name":"eli","text":"jhfdjsfdjsfdjk","time":"2026-09-06"},
-{"name":"eli","text":"ghgkhgk","time":"2026-09-08"},
-{"name":"eli","text":"hola","time":"2026-09-11"},
-{"name":"eli","text":"hello","time":"2026-09-11"},
-{"name":"eli","text":"hi","time":"2026-09-11"},
-{"name":"eli","text":"hi again","time":"2026-09-11"},
-{"name":"eli","text":"opla","time":"2026-09-13"},
-{"name":"eli","text":"help me","time":"2026-09-13"},
-{"name":"eli","text":"help me again","time":"2026-09-13"},
-{"name":"eli","text":"help me again","time":"2026-09-13"},
-{"name":"eli","text":"???","time":"2026-09-14"},
-{"name":"eli","text":"again","time":"2026-09-14"},
-{"name":"eli","text":"helllo chat","time":"2026-09-14"},
-{"name":"eli","text":"nice","time":"2026-09-14"},
-{"name":"eli","text":"ophaa","time":"2026-09-14"},
-{"name":"eli","text":"ollalaa","time":"2026-09-14"},
-{"name":"eli","text":"ollalaa","time":"2026-09-14"},
-{"name":"eli","text":"ollalaa","time":"2026-09-14"},
-{"name":"eli","text":"ollalaa","time":"2026-09-14"},
-{"name":"eli","text":"ollalaa","time":"2026-09-14"},
-{"name":"eli","text":"oll5alaa","time":"2026-09-14"},
-{"name":"eli","text":"oll5alaa","time":"2026-09-14"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"hi","time":"2026-09-15"},
-{"name":"eli","text":"nice","time":"2026-09-15"},
-{"name":"eli","text":"its work !!!!","time":"2026-09-15"},
-{"name":"eli","text":"how great","time":"2026-09-15"},
-{"name":"eli","text":"how great","time":"2026-09-15"},
-{"name":"eli","text":"how great","time":"2026-09-15"},
-{"name":"eli","text":"how great","time":"2026-09-15"},
-{"name":"eli","text":"how great","time":"2026-09-15"},
-{"name":"Alice","text":"Hi","time":"2026-09-15"},
-{"name":"eli","text":"hgjhg","time":"2026-09-15"},
-{"name":"eli","text":"hgjhg","time":"2026-09-15"},
-{"name":"eli","text":"hgjhg","time":"2026-09-15"},
-{"name":"Alice","text":"H","time":"2026-09-15"},
-{"name":"Alice","text":"H","time":"2026-09-15"}
-]
+{"file":"chat","name":"Alice","text":"???","time":"2026-10-07T14:40:40.756Z"},
+{"file":"chat","name":"Alice","text":"??","time":"2026-10-07T15:11:22.426Z"},
+{"file":"chat","name":"Alice","text":"","time":"2026-10-07T15:11:41.273Z"},{"file":"chat","name":"Alice","text":"?","time":"2026-10-07T16:15:26.153Z"}
+,{"file":"chat","name":"Alice","text":"hu","time":"2026-10-07T16:35:59.601Z"}
+,{"file":"chat","name":"Alice","text":"hiii","time":"2026-10-07T16:37:56.765Z"}
+,{"file":"chat","name":"Alice","text":"jgfjhg","time":"2026-10-07T16:43:50.047Z"}
+,{"file":"chat","name":"Alice","text":"hgk","time":"2026-10-07T16:45:28.672Z"}
+,{"file":"chat","name":"Alice","text":"kjhkjh","time":"2026-10-07T16:51:29.942Z"}
+,{"file":"chat","name":",jhg","text":",jhb,jh","time":"2026-10-07T16:52:09.221Z"}
+,{"file":"chat","name":"name","text":"add","time":"2026-10-07T17:19:49.583Z"}

@@ -20,7 +20,7 @@ struct Datagram_store{
 };
 
 int get_datagram_store_size(Datagram_store *Dgs){return Dgs->size;}
-Datagram get_datagram_store_datagram(Datagram_store *Dgs, int indx){return Dgs->datagrams[indx];}
+Datagram *get_datagram_store_datagram(Datagram_store *Dgs, int indx){return &Dgs->datagrams[indx];}
 
 struct Packeg{
     char command[18];
@@ -43,9 +43,7 @@ Datagram_store *init_datagramstore(){
     datagram->cap = 10;
     datagram->size = 0;
 
-    for (int i = 0; i < datagram->cap; i++){
-        datagram->datagrams = malloc(sizeof(Datagram) * datagram->cap);
-    }
+    datagram->datagrams = malloc(sizeof(Datagram) * datagram->cap);
 
     return datagram;
 }
@@ -67,7 +65,7 @@ int add_datagram(Datagram_store *datagram, char *data, int clientfd, int data_si
     return 0;
 }
 
-int free_datagram_store(Datagram_store *Dgram){
+int clear_datagram_store(Datagram_store *Dgram){
     for (int i = 0; i < Dgram->size; i++){
         memset(Dgram->datagrams[i].msg, 0, Dgram->datagrams[i].msg_size);
         Dgram->datagrams[i].msg_size = 0;
@@ -75,6 +73,21 @@ int free_datagram_store(Datagram_store *Dgram){
     }
 
     Dgram->size = 0;
+
+    return 0;
+}
+
+int free_datagram_store(Datagram_store *Dgram){
+    for (int i = 0; i < Dgram->size; i++){
+        free(Dgram->datagrams[i].msg);
+        Dgram->datagrams[i].msg = NULL;
+    }
+
+    free(Dgram->datagrams);
+    Dgram->datagrams = NULL;
+
+    free(Dgram);
+    Dgram = NULL;
 
     return 0;
 }
@@ -102,7 +115,6 @@ Packeg *read_datagram(Datagram *dg){
 
         strcpy(pkg->link, requst);
 
-        return pkg;
     }
 
     HADER_C = strcasestr(dg->msg, "POST");
@@ -111,7 +123,7 @@ Packeg *read_datagram(Datagram *dg){
 
         char *cl = strcasestr(dg->msg, "Content-Length:");
         pkg->data_size = atoi(cl+15);
-        pkg->data = malloc(pkg->data_size);
+        pkg->data = malloc(pkg->data_size+1);
 
         if(pkg->data == NULL){
             free(pkg);
@@ -119,9 +131,11 @@ Packeg *read_datagram(Datagram *dg){
         }
 
         int start = dg->msg_size - pkg->data_size;
-        strcpy(pkg->data,dg->msg + start);
-        pkg->data,dg->msg[pkg->data_size+1] = '\0';
+        strcpy(pkg->data, dg->msg + start);
+        (pkg->data)[pkg->data_size+1] = '\0';
     }
+
+    return pkg;
 }
 
 int free_datagram(Packeg *dg){
@@ -135,6 +149,9 @@ int free_datagram(Packeg *dg){
     }
 
     if(dg->data != NULL || dg->link != NULL)return -1;
+
+    free(dg);
+    dg = NULL;
 
     return 1;
 }

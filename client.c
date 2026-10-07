@@ -8,15 +8,8 @@ struct Clients_socket{
 };
 
 Clients_socket *init_client_sock(){
-
-    Clients_socket *client_sock = malloc(sizeof(Clients_socket));
-
-    for(int i = 0; i < MAX_CLIENTS; i++){
-        client_sock[i].active = 0;
-        client_sock[i].is_cl = 0;
-        memset(client_sock[i].command, 0, 100); 
-    }
-    
+    Clients_socket *client_sock = calloc(MAX_CLIENTS, sizeof(Clients_socket));
+    if (client_sock == NULL) return NULL;
     return client_sock;
 }
 
@@ -68,18 +61,6 @@ int last_open_socket(Clients_socket *client_sock){
     return lsteset;
 }
 
-int clear_client_socket(Clients_socket *client_sock){
-    
-    for (int i = 0; i < MAX_CLIENTS; i++){
-        client_sock[i].active = 0;
-        client_sock[i].is_cl = 0;
-        memset(client_sock[i].command, 0, 100); 
-    }
-
-    return 0;
-}
-
-
 // this program just sand the same data into every open client fd
 int global_sand(    Clients_socket *client_sock,
                     char *data,
@@ -110,10 +91,12 @@ int global_sand(    Clients_socket *client_sock,
 }
 
 int view_clients_status(Clients_socket *client_sock){
-    system("clear");
+    //system("clear");
     printf("fd\t\tstatus\t\tcomannd\n");
     for(int i = 0; i < MAX_CLIENTS; i++){
-        printf("%d\t\t%d\t\t%s\n", i, client_sock[i].is_cl, client_sock[i].command);
+        if (client_sock[i].is_cl){
+            printf("activ sock at : %d,\t%s\n", i, client_sock[i].command);
+        }
     }
     printf("pres Q to stop\n");
     return 0;

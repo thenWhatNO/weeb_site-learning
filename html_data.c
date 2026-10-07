@@ -19,7 +19,7 @@ HTML_page *get_html_page(HTML_page_store *hps, int idx){return &hps->pages[idx];
 char *get_HP_name(HTML_page *hp){return hp->name;}
 char *get_HP_link(HTML_page *hp){return hp->link;}
 char *get_HP_data(HTML_page *hp){return hp->data;}
-int *get_HP_size(HTML_page *hp){return hp->size;}
+int get_HP_size(HTML_page *hp){return hp->size;}
 
 
 HTML_page_store *init_html_struct(){
@@ -65,6 +65,9 @@ int add_html_page(  HTML_page_store *hps,
 
     hps->len++;
 
+    fclose(fl);
+    fl = NULL;
+
     return 0;
 }
 
@@ -94,10 +97,10 @@ int free_html_page_store(HTML_page_store *hps){
 }
 
 int applay_haders(  char *buff, 
-                    size_t buff_size, 
+                    int buff_size, 
                     char *hadder, 
                     char *data, 
-                    size_t data_l
+                    int data_l
                 )
     {
     char *HADER_C = strcasestr(hadder, "Content-Length");
@@ -106,5 +109,5 @@ int applay_haders(  char *buff,
     } else {
         snprintf(buff, buff_size, hadder, data);
     }
-    return 0;
+    return strlen(buff);
 }
