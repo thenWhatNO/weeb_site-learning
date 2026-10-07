@@ -4,7 +4,6 @@
 typedef struct Server_socket Server_socket;
 
 Server_socket *initilize_server(char *ip, char *port); 
-int clear_server_data(Server_socket *Server_socket);
 int start_server(Server_socket *server_sock);
 int stop_server(Server_socket *server_sock);
 int close_server(Server_socket *server_sock);

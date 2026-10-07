@@ -160,9 +160,11 @@ int read_client_msg_copy(   Packeg *pkg,
             update_file(myfiles, buff, fl_data, pkg_data_size+2, 0);
         }
 
-        send(client_fd, pkg_data, pkg_data_size, 0);
+        char frame[1024];
+        int len = snprintf(frame, sizeof(frame),"data: %s\n\n", pkg_data);
+        //send(client_fd, frame, len, 0);
         //send(client_fd, "HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n", 19, 0);
-        global_sand(client_sock, pkg_data, pkg_data_size);
+        global_sand(client_sock, frame, len);
         remove_client(client_sock, client_fd);
     }
 }

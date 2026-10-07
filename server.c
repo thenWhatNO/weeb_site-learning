@@ -16,7 +16,6 @@
 struct Server_socket{
     int fd; //soket number
     char *ip;
-    struct addrinfo *server_info;
     int status; // 1 running, 0 off
 };
 
@@ -32,7 +31,6 @@ Server_socket *initilize_server(char *ip, char *port){
     strcpy(server_sock->ip, ip);
 
     server_sock->fd = 0;
-    server_sock->server_info = NULL;
     
     int err;
     
@@ -58,24 +56,11 @@ Server_socket *initilize_server(char *ip, char *port){
             close(server_sock->fd);
             continue;
         }
-        
-        server_sock->server_info = malloc(sizeof(p)+1);
-        server_sock->server_info = p;
 
         break;
     }
 
     freeaddrinfo(res);
-
-    if (server_sock->server_info == NULL){
-        if(server_sock->fd == 0){
-            perror("false to create a socket\n");
-        } else {
-            perror("filed to binde the sever\n");
-            close(server_sock->fd);
-        }
-        return NULL;
-    }
 
     return server_sock;
 }
@@ -83,23 +68,12 @@ Server_socket *initilize_server(char *ip, char *port){
 int free_server(Server_socket *server_fd){
     free(server_fd->ip);
     server_fd->ip = NULL;
-
-    free(server_fd->server_info);
-    server_fd->server_info = NULL;
-
+    
     free(server_fd);
     server_fd = NULL;
 
     return 0;
 }
-
-int clear_server_data(Server_socket *Server_socket){
-    free(Server_socket->ip);
-    freeaddrinfo(Server_socket->server_info);
-
-    return 0;
-}
-
 
 int start_server(Server_socket *server_sock){
     int err;
