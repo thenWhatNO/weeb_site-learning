@@ -21,16 +21,29 @@ int main(){
     start_server(my_server);
     printf("server up on port : 8080\n");
     
+    
     int get;
-    for (int ii = 0; ii < 10; ii++){
+    while (true){
+        fd_set end_prog;
+        FD_ZERO(&end_prog);
+        FD_SET(STDIN_FILENO, &end_prog);
+
+        struct timeval tim = {0,300000};
+        get = select(last_open_socket(my_clients)+1, &end_prog, NULL, NULL, &tim);
+
+        if(get > 0){
+            char inpt = getchar();
+            if(inpt == 'q' || inpt == 'Q') break;
+        }
+
         if((get = accept_server(my_server, 1)) > 0) add_client(my_clients, get);
 
         listin_server(datagrams, my_server, my_clients, 1);
 
         view_clients_status(my_clients);
 
-        for (int i = 0; i < get_datagram_store_size(datagrams); i++){
-            Datagram *corent_dg = get_datagram_store_datagram(datagrams, i);
+        for (get = 0; get < get_datagram_store_size(datagrams); get++){
+            Datagram *corent_dg = get_datagram_store_datagram(datagrams, get);
 
             Packeg *pkg = read_datagram(corent_dg);
             int client_fd = get_datagram_client_fd(corent_dg);
@@ -40,6 +53,11 @@ int main(){
             free_datagram(pkg);
             pkg = NULL;
             corent_dg = NULL;
+        }
+
+        for (get = 0; get < MAX_CLIENTS; get++){
+            int i;
+            if((i = view_client_alive(my_clients, get)) == -1 && is_client_true(my_clients, get)) remove_client(my_clients, get);
         }
 
         clear_datagram_store(datagrams);
@@ -56,6 +74,8 @@ int main(){
     close_server(my_server);
 
     free_server(my_server);
+
+    printf("the server stoped\n");
 
     return 0;
 }

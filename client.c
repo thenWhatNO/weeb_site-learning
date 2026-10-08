@@ -38,9 +38,10 @@ int remove_client(Clients_socket *client_sock, int fd){
     return 0;
 }
 
-int view_client_status(Clients_socket *client_sock, int fd){
+int view_client_alive(Clients_socket *client_sock, int fd){
         char c;
-        ssize_t n = recv(fd, &c, 1, MSG_PEEK | MSG_DONTWAIT);
+        //ssize_t n = recv(fd, &c, 1, MSG_PEEK | MSG_DONTWAIT);
+        ssize_t n = send(fd, ": ping\n\n", 9, MSG_NOSIGNAL);
         if (n > 0)  return 1;              // client sent us something (unexpected on SSE, but alive)
         if (n == 0) return 0;              // peer performed orderly shutdown — CLOSED
         // n == -1:
@@ -91,7 +92,7 @@ int global_sand(    Clients_socket *client_sock,
 }
 
 int view_clients_status(Clients_socket *client_sock){
-    //system("clear");
+    system("clear");
     printf("fd\t\tstatus\t\tcomannd\n");
     for(int i = 0; i < MAX_CLIENTS; i++){
         if (client_sock[i].is_cl){
